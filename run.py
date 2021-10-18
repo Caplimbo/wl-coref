@@ -113,7 +113,7 @@ def run_on_articles(articles, device="cuda", batch_size=512):
     # load_device = None if device != "cpu" else device
     model.load_weights(
         path=WEIGHT_FILE,
-        map_location=device,
+        map_location="cpu",
         ignore={
             "bert_optimizer",
             "general_optimizer",
@@ -143,10 +143,8 @@ def run_on_articles(articles, device="cuda", batch_size=512):
 def read_articles_from_json_file(file_path):
     print("Reading from file...")
     articles = []
-    count = 0
     with open(file_path, "r") as inf:
         for entry in jsonlines.Reader(inf):
-            # entry = json.loads(line)
             articles.append(entry['text'])
     print(f"Done Reading! {len(articles)} articles in all to process!")
     return articles
