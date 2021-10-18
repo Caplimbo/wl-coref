@@ -32,7 +32,7 @@ class WordEncoder(torch.nn.Module):  # pylint: disable=too-many-instance-attribu
     def forward(self,  # type: ignore  # pylint: disable=arguments-differ  #35566 in pytorch
                 doc: Doc,
                 x: torch.Tensor,
-                ) -> Tuple[torch.Tensor, ...]:
+                ):
         """
         Extracts word representations from text.
 
@@ -55,7 +55,7 @@ class WordEncoder(torch.nn.Module):  # pylint: disable=too-many-instance-attribu
 
         words = self.dropout(words)
 
-        return (words, self._cluster_ids(doc))
+        return words
 
     def _attn_scores(self,
                      bert_out: torch.Tensor,

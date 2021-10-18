@@ -215,7 +215,7 @@ class CorefModel:  # pylint: disable=too-many-instance-attributes
         # Encode words with bert
         # words           [n_words, span_emb]
         # cluster_ids     [n_words]
-        words, cluster_ids = self.we(doc, self._bertify(doc))
+        words = self.we(doc, self._bertify(doc))
 
         # Obtain bilinear scores and leave only top-k antecedents for each word
         # top_rough_scores  [n_words, n_ants]
@@ -247,11 +247,11 @@ class CorefModel:  # pylint: disable=too-many-instance-attributes
         # coref_scores  [n_spans, n_ants]
         res.coref_scores = torch.cat(a_scores_lst, dim=0)
 
-        res.coref_y = self._get_ground_truth(
-            cluster_ids, top_indices, (top_rough_scores > float("-inf")))
+        # res.coref_y = self._get_ground_truth(
+        #     cluster_ids, top_indices, (top_rough_scores > float("-inf")))
         res.word_clusters = self._clusterize(doc, res.coref_scores,
                                              top_indices)
-        res.span_scores, res.span_y = self.sp.get_training_data(doc, words)
+        # res.span_scores, res.span_y = self.sp.get_training_data(doc, words)
 
         if not self.training:
             res.span_clusters = self.sp.predict(doc, words, res.word_clusters)
@@ -346,11 +346,10 @@ class CorefModel:  # pylint: disable=too-many-instance-attributes
 
         # Obtain bert output for selected batches only
         attention_mask = (subwords_batches != self.tokenizer.pad_token_id)
-        out, _ = self.bert(
+        out = self.bert(
             subwords_batches_tensor,
             attention_mask=torch.tensor(
-                attention_mask, device=self.config.device))
-        del _
+                attention_mask, device=self.config.device))['last_hidden_state']
 
         # [n_subwords, bert_emb]
         return out[subword_mask_tensor]

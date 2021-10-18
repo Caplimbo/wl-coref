@@ -12,7 +12,7 @@ import jsonlines
 from tqdm import tqdm
 
 
-DATA_SPLITS = ["development", "test", "train"]
+DATA_SPLITS = ["test"]
 DEPS_FILENAME = "deps.conllu"
 DEPS_IDX_FILENAME = "deps.index"
 DEP_SENT_PATTERN = re.compile(r"(?:^\d.+$\n?)+", flags=re.M)
@@ -38,7 +38,7 @@ class CorefSpansHolder:
             assert len(start_lst) == 0
         return iter(self.spans.values())
 
-    def add(self, coref_info: str, word_id: int):
+    def add(self, coref_info, word_id):
         """
         Examples of coref_info: "(50)", "(50", "50)", "(50)|(80" etc
         """
@@ -46,7 +46,7 @@ class CorefSpansHolder:
         for ci in coref_info:
             self._add_one(ci, word_id)
 
-    def _add_one(self, coref_info: str, word_id: int):
+    def _add_one(self, coref_info, word_id):
         if coref_info[0] == "(":
             if coref_info[-1] == ")":
                 entity_id = int(coref_info[1:-1])
@@ -257,7 +257,7 @@ def get_conll_filenames(data_dir: str, language: str) -> Dict[str, List[str]]:
         data_split_dir = os.path.join(data_dir, data_split, "data", language)
         conll_filenames[data_split] = [
             filename for filename in get_filenames(data_split_dir)
-            if filename.endswith("gold_conll")
+            if filename.endswith("conll")
             ]
     return conll_filenames
 
@@ -386,7 +386,7 @@ if __name__ == "__main__":
         shutil.rmtree(args.tmp_dir)
 
     os.makedirs(args.tmp_dir)
-    data_dir = os.path.join(args.conll_dir, "v4", "data")
+    data_dir = os.path.join(args.conll_dir, "trial", "data")
     conll_filenames = get_conll_filenames(data_dir, "english")
     extract_trees_to_files(args.tmp_dir, conll_filenames)
     convert_con_to_dep(args.tmp_dir, conll_filenames)

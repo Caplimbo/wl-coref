@@ -68,7 +68,7 @@ def load_bert(config: Config) -> Tuple[AutoModel, AutoTokenizer]:
     tokenizer = AutoTokenizer.from_pretrained(config.bert_model,
                                               **tokenizer_kwargs)
 
-    model = AutoModel.from_pretrained(config.bert_model).to(config.device)
+    model = AutoModel.from_pretrained(config.bert_model, cache_dir="models").to(config.device)
 
     print("Bert successfully loaded.")
 

@@ -1,6 +1,6 @@
 set -e # any error will cause the script to exit immediately
 
-git clone https://github.com/conll/reference-coreference-scorers.git
+# git clone https://github.com/conll/reference-coreference-scorers.git
 
 # downloading stanford parser
 

@@ -9,7 +9,7 @@ import jsonlines
 DATA_DIR = "data"
 FILENAME = "english_{}{}.jsonlines"
 LOGGING_LEVEL = logging.WARNING  # DEBUG to output all duplicate spans
-SPLITS = ("development", "test", "train")
+SPLITS = ("test", )
 
 
 def get_head(mention: Tuple[int, int], doc: dict) -> int:

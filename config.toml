@@ -13,7 +13,7 @@ dev_data = "data/english_development_head.jsonlines"
 test_data = "data/english_test_head.jsonlines"
 
 # The device where everything is to be placed. "cuda:N"/"cpu" are supported.
-device = "cuda:0"
+device = "cpu"
 
 
 # Bert settings ======================
