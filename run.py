@@ -162,5 +162,6 @@ if __name__ == "__main__":
     device = input("DEVICE: ")
     batch_size = int(input("BATCH_SIZE: "))
     num_articles = int(input("Number of Articles: "))
+    device = None if device != "cpu" else device
     duration = run_on_articles(articles[:num_articles], device=device, batch_size=batch_size)
     print(f"Running for {num_articles} articles took {duration} seconds.")
