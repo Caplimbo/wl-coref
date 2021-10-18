@@ -110,7 +110,7 @@ def run_on_articles(articles, device="cuda", batch_size=512):
 
     model.config.a_scoring_batch_size = batch_size
     model.config.device = device
-    load_device = None if device != "cpu" else device
+    # load_device = None if device != "cpu" else device
     model.load_weights(
         path=WEIGHT_FILE,
         map_location=load_device,
