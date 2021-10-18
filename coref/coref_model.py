@@ -253,8 +253,7 @@ class CorefModel:  # pylint: disable=too-many-instance-attributes
                                              top_indices)
         # res.span_scores, res.span_y = self.sp.get_training_data(doc, words)
 
-        if not self.training:
-            res.span_clusters = self.sp.predict(doc, words, res.word_clusters)
+        res.span_clusters = self.sp.predict(doc, words, res.word_clusters)
 
         return res
 
