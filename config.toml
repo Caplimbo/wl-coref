@@ -13,7 +13,7 @@ dev_data = "data/english_development_head.jsonlines"
 test_data = "data/english_test_head.jsonlines"
 
 # The device where everything is to be placed. "cuda:N"/"cpu" are supported.
-device = "cpu"
+device = "cuda:0"
 
 
 # Bert settings ======================
@@ -122,7 +122,7 @@ bert_window_size = 2048
 [debug]
 bert_window_size = 384
 bert_finetune = false
-device = "cpu:0"
+device = "cuda:0"
 
 [debug_gpu]
 bert_window_size = 384

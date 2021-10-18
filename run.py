@@ -106,14 +106,15 @@ def process_article(article: str):
 
 def run_on_articles(articles, device="cuda", batch_size=512):
     print("Loading Model...")
+
     model = CorefModel(CONFIG_FILE, EXPERIMENT_MODEL)
 
     model.config.a_scoring_batch_size = batch_size
     model.config.device = device
-    # load_device = None if device != "cpu" else device
+    load_device = lambda storage, loc: storage.cuda(0) if device != "cpu" else device
     model.load_weights(
         path=WEIGHT_FILE,
-        map_location=lambda storage, loc: storage.cuda(0),
+        map_location=load_device,
         ignore={
             "bert_optimizer",
             "general_optimizer",
