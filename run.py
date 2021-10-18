@@ -114,7 +114,7 @@ def run_on_articles(articles, device="cuda", batch_size=512):
     load_device = lambda storage, loc: storage.cuda(0) if device != "cpu" else device
     model.load_weights(
         path=WEIGHT_FILE,
-        map_location=load_device,
+        map_location="cpu",
         ignore={
             "bert_optimizer",
             "general_optimizer",
