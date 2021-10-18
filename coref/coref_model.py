@@ -65,10 +65,10 @@ class CorefModel:  # pylint: disable=too-many-instance-attributes
         self.epochs_trained = epochs_trained
         self._docs: Dict[str, List[Doc]] = {}
         self._build_model()
-        self._build_optimizers()
+        # self._build_optimizers()
         self._set_training(False)
-        self._coref_criterion = CorefLoss(self.config.bce_loss_weight)
-        self._span_criterion = torch.nn.CrossEntropyLoss(reduction="sum")
+        # self._coref_criterion = CorefLoss(self.config.bce_loss_weight)
+        # self._span_criterion = torch.nn.CrossEntropyLoss(reduction="sum")
 
     @property
     def training(self) -> bool:
@@ -375,7 +375,6 @@ class CorefModel:  # pylint: disable=too-many-instance-attributes
         }
 
     def _build_optimizers(self):
-        n_docs = len(self._get_docs(self.config.train_data))
         self.optimizers: Dict[str, torch.optim.Optimizer] = {}
         self.schedulers: Dict[str, torch.optim.lr_scheduler.LambdaLR] = {}
 
@@ -386,12 +385,6 @@ class CorefModel:  # pylint: disable=too-many-instance-attributes
             self.optimizers["bert_optimizer"] = torch.optim.Adam(
                 self.bert.parameters(), lr=self.config.bert_learning_rate
             )
-            self.schedulers["bert_scheduler"] = \
-                transformers.get_linear_schedule_with_warmup(
-                    self.optimizers["bert_optimizer"],
-                    n_docs, n_docs * self.config.train_epochs
-                )
-
         # Must ensure the same ordering of parameters between launches
         modules = sorted((key, value) for key, value in self.trainable.items()
                          if key != "bert")
@@ -403,11 +396,6 @@ class CorefModel:  # pylint: disable=too-many-instance-attributes
 
         self.optimizers["general_optimizer"] = torch.optim.Adam(
             params, lr=self.config.learning_rate)
-        self.schedulers["general_scheduler"] = \
-            transformers.get_linear_schedule_with_warmup(
-                self.optimizers["general_optimizer"],
-                0, n_docs * self.config.train_epochs
-            )
 
     def _clusterize(self, doc: Doc, scores: torch.Tensor, top_indices: torch.Tensor):
         antecedents = scores.argmax(dim=1) - 1
