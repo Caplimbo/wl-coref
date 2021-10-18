@@ -105,6 +105,7 @@ def process_article(article: str):
 
 
 def run_on_articles(articles, device="cuda", batch_size=512):
+    print("Loading Model...")
     model = CorefModel(CONFIG_FILE, EXPERIMENT_MODEL)
 
     model.config.a_scoring_batch_size = batch_size
@@ -119,7 +120,10 @@ def run_on_articles(articles, device="cuda", batch_size=512):
             "general_scheduler",
         },
     )
+    print("Model Loaded!")
+
     docs = [preprocess_doc(process_article(article), model.tokenizer) for article in articles]
+    start = time.time()
     for article, doc in zip(articles, docs):
         res = model.run(doc)
         all_span_clusters = res.span_clusters
@@ -129,6 +133,8 @@ def run_on_articles(articles, device="cuda", batch_size=512):
                 print(f"Span: {span}")
                 print(f"word: {processed[span[0]: span[1]]}")
             print("----------------------------------")
+    end = time.time()
+    return end-start
 
 
 def read_articles_from_json_file(file_path):
@@ -154,7 +160,5 @@ if __name__ == "__main__":
     device = input("DEVICE: ")
     batch_size = int(input("BATCH_SIZE: "))
     num_articles = int(input("Number of Articles: "))
-    start = time.time()
-    run_on_articles(articles[:num_articles], device=device, batch_size=batch_size)
-    end = time.time()
-    print(f"Inference Time: {end-start}")
+    duration = run_on_articles(articles[:num_articles], device=device, batch_size=batch_size)
+    print(f"Running for {num_articles} articles took {duration} seconds.")
