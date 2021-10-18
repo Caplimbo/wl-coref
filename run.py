@@ -133,6 +133,8 @@ def run_on_articles(articles, device="cuda", batch_size=512):
                 print(f"Span: {span}")
                 print(f"word: {processed[span[0]: span[1]]}")
             print("----------------------------------")
+        torch.cuda.empty_cache()
+        del res
     end = time.time()
     return end-start
 
