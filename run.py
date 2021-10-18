@@ -110,9 +110,10 @@ def run_on_articles(articles, device="cuda", batch_size=512):
 
     model.config.a_scoring_batch_size = batch_size
     model.config.device = device
+    load_device = None if device != "cpu" else device
     model.load_weights(
         path=WEIGHT_FILE,
-        map_location=device,
+        map_location=load_device,
         ignore={
             "bert_optimizer",
             "general_optimizer",
@@ -162,6 +163,5 @@ if __name__ == "__main__":
     device = input("DEVICE: ")
     batch_size = int(input("BATCH_SIZE: "))
     num_articles = int(input("Number of Articles: "))
-    device = None if device != "cpu" else device
     duration = run_on_articles(articles[:num_articles], device=device, batch_size=batch_size)
     print(f"Running for {num_articles} articles took {duration} seconds.")
