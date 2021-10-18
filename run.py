@@ -109,7 +109,7 @@ def run_on_articles(articles, device="cuda", batch_size=512):
     model = CorefModel(CONFIG_FILE, EXPERIMENT_MODEL)
 
     model.config.a_scoring_batch_size = batch_size
-
+    model.config.device = device
     model.load_weights(
         path=WEIGHT_FILE,
         map_location=device,
