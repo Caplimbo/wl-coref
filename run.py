@@ -128,13 +128,13 @@ def run_on_articles(articles, device="cuda", batch_size=512):
     start = time.time()
     for article, doc in zip(articles, docs):
         res = model.run(doc)
-        all_span_clusters = res.span_clusters
-        processed = NLP(article)
-        for cluster in all_span_clusters:
-            for span in cluster:
-                print(f"Span: {span}")
-                print(f"word: {processed[span[0]: span[1]]}")
-            print("----------------------------------")
+        # all_span_clusters = res.span_clusters
+        # processed = NLP(article)
+        # for cluster in all_span_clusters:
+        #     for span in cluster:
+        #         print(f"Span: {span}")
+        #         print(f"word: {processed[span[0]: span[1]]}")
+        #     print("----------------------------------")
         torch.cuda.empty_cache()
         del res
     end = time.time()
