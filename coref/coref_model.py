@@ -343,14 +343,13 @@ class CorefModel:  # pylint: disable=too-many-instance-attributes
     # ========================================================= Private methods
 
     def _bertify(self, docs: List[Doc]):
-        batched_subwords = np.array([])
+        batched_subwords = None
         split_index = [0]
         start = time.time()
         for doc in docs:
             subwords_batches = bert.get_subwords_batches(doc, self.config,
                                                         self.tokenizer)
-
-            batched_subwords = np.concatenate([batched_subwords, subwords_batches], axis=0)
+            batched_subwords = subwords_batches if not batched_subwords else np.concatenate([batched_subwords, subwords_batches], axis=0)
             split_index.append(len(subwords_batches))
 
         subwords_batches = batched_subwords
