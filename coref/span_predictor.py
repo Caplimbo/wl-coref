@@ -92,7 +92,7 @@ class SpanPredictor(torch.nn.Module):
             valid_starts = torch.log((relative_positions >= 0).to(torch.float))
             valid_ends = torch.log((relative_positions <= 0).to(torch.float))
             valid_positions = torch.stack((valid_starts, valid_ends), dim=2)
-            return scores + valid_positions
+            return scores + valid_positions, duration
         return scores, duration
 
     def get_training_data(self,
