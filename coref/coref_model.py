@@ -201,7 +201,7 @@ class CorefModel:  # pylint: disable=too-many-instance-attributes
                 print(f"Loaded {key}")
 
     def run(self,  # pylint: disable=too-many-locals
-            doc: Doc,
+            docs: List[Doc],
             ) -> CorefResult:
         """
         This is a massive method, but it made sense to me to not split it into
@@ -217,52 +217,59 @@ class CorefModel:  # pylint: disable=too-many-instance-attributes
         # words           [n_words, span_emb]
         # cluster_ids     [n_words]
         all_start = time.time()
-        bert_doc, bert_duration = self._bertify(doc)
-        words, attn_duration = self.we(doc, bert_doc)
+        bert_docs, bert_duration = self._bertify(docs)
 
-        # Obtain bilinear scores and leave only top-k antecedents for each word
-        # top_rough_scores  [n_words, n_ants]
-        # top_indices       [n_words, n_ants]
-        (top_rough_scores, top_indices), linear_dropout_duration = self.rough_scorer(words)
+        full_result = []
+        for doc, bert_doc in zip(docs, bert_docs):
+            words, attn_duration = self.we(doc, bert_doc)
 
-        # Get pairwise features [n_words, n_ants, n_pw_features]
-        pw = self.pw(top_indices, doc)
+            # Obtain bilinear scores and leave only top-k antecedents for each word
+            # top_rough_scores  [n_words, n_ants]
+            # top_indices       [n_words, n_ants]
+            (top_rough_scores, top_indices), linear_dropout_duration = self.rough_scorer(words)
 
-        batch_size = self.config.a_scoring_batch_size
-        a_scores_lst: List[torch.Tensor] = []
+            # Get pairwise features [n_words, n_ants, n_pw_features]
+            pw = self.pw(top_indices, doc)
 
-        for i in range(0, len(words), batch_size):
-            pw_batch = pw[i:i + batch_size]
-            words_batch = words[i:i + batch_size]
-            top_indices_batch = top_indices[i:i + batch_size]
-            top_rough_scores_batch = top_rough_scores[i:i + batch_size]
+            batch_size = self.config.a_scoring_batch_size
+            a_scores_lst: List[torch.Tensor] = []
 
-            # a_scores_batch    [batch_size, n_ants]
-            a_scores_batch = self.a_scorer(
-                all_mentions=words, mentions_batch=words_batch,
-                pw_batch=pw_batch, top_indices_batch=top_indices_batch,
-                top_rough_scores_batch=top_rough_scores_batch
-            )
-            a_scores_lst.append(a_scores_batch)
+            for i in range(0, len(words), batch_size):
+                pw_batch = pw[i:i + batch_size]
+                words_batch = words[i:i + batch_size]
+                top_indices_batch = top_indices[i:i + batch_size]
+                top_rough_scores_batch = top_rough_scores[i:i + batch_size]
 
-        res = CorefResult()
+                # a_scores_batch    [batch_size, n_ants]
+                a_scores_batch = self.a_scorer(
+                    all_mentions=words, mentions_batch=words_batch,
+                    pw_batch=pw_batch, top_indices_batch=top_indices_batch,
+                    top_rough_scores_batch=top_rough_scores_batch
+                )
+                a_scores_lst.append(a_scores_batch)
 
-        # coref_scores  [n_spans, n_ants]
-        res.coref_scores = torch.cat(a_scores_lst, dim=0)
+            res = CorefResult()
 
-        # res.coref_y = self._get_ground_truth(
-        #     cluster_ids, top_indices, (top_rough_scores > float("-inf")))
-        res.word_clusters = self._clusterize(doc, res.coref_scores,
-                                             top_indices)
-        # res.span_scores, res.span_y = self.sp.get_training_data(doc, words)
+            # coref_scores  [n_spans, n_ants]
+            res.coref_scores = torch.cat(a_scores_lst, dim=0)
 
-        res.span_clusters, final_model_duration = self.sp.predict(doc, words, res.word_clusters)
+            # res.coref_y = self._get_ground_truth(
+            #     cluster_ids, top_indices, (top_rough_scores > float("-inf")))
+            res.word_clusters = self._clusterize(doc, res.coref_scores,
+                                                 top_indices)
+            # res.span_scores, res.span_y = self.sp.get_training_data(doc, words)
+
+            res.span_clusters, final_model_duration = self.sp.predict(doc, words, res.word_clusters)
+            # all_end = time.time()
+            # print(f"Full Inference Time: {all_end - all_start:.6f}")
+            # print(f"Bert takes time: {bert_duration:.6f}, Proportion:{bert_duration/(all_end-all_start)*100:.2f}%")
+            # print(f"All things that could be batched take time: {bert_duration + attn_duration + linear_dropout_duration + final_model_duration}")
+            # print("--------------------------")
+            full_result.append(res.span_clusters)
         all_end = time.time()
         print(f"Full Inference Time: {all_end - all_start:.6f}")
         print(f"Bert takes time: {bert_duration:.6f}, Proportion:{bert_duration/(all_end-all_start)*100:.2f}%")
-        # print(f"All things that could be batched take time: {bert_duration + attn_duration + linear_dropout_duration + final_model_duration}")
-        print("--------------------------")
-        return res
+        return full_result
 
     def save_weights(self):
         """ Saves trainable models as state dicts. """
@@ -335,10 +342,18 @@ class CorefModel:  # pylint: disable=too-many-instance-attributes
 
     # ========================================================= Private methods
 
-    def _bertify(self, doc: Doc):
-        subwords_batches = bert.get_subwords_batches(doc, self.config,
-                                                     self.tokenizer)
+    def _bertify(self, docs: List[Doc]):
+        batched_subwords = np.array([])
+        split_index = [0]
+        start = time.time()
+        for doc in docs:
+            subwords_batches = bert.get_subwords_batches(doc, self.config,
+                                                        self.tokenizer)
 
+            batched_subwords = np.concatenate([batched_subwords, subwords_batches], axis=0)
+            split_index.append(len(subwords_batches))
+
+        subwords_batches = batched_subwords
         special_tokens = np.array([self.tokenizer.cls_token_id,
                                    self.tokenizer.sep_token_id,
                                    self.tokenizer.pad_token_id])
@@ -352,14 +367,16 @@ class CorefModel:  # pylint: disable=too-many-instance-attributes
 
         # Obtain bert output for selected batches only
         attention_mask = (subwords_batches != self.tokenizer.pad_token_id)
-        start = time.time()
+
         out = self.bert(
             subwords_batches_tensor,
             attention_mask=torch.tensor(
                 attention_mask, device=self.config.device))['last_hidden_state']
 
         # [n_subwords, bert_emb]
-        return out[subword_mask_tensor], time.time() - start
+        full_output = out[subword_mask_tensor]
+        separate_output = [full_output[split_index[i]: split_index[i+1]] for i in range(len(docs))]
+        return separate_output, time.time() - start
 
     def _build_model(self):
         self.bert, self.tokenizer = bert.load_bert(self.config)
