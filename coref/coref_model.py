@@ -201,7 +201,7 @@ class CorefModel:  # pylint: disable=too-many-instance-attributes
                 print(f"Loaded {key}")
 
     def run(self,  # pylint: disable=too-many-locals
-            docs: List[Doc],
+            docs: List[Doc], bert_batch_size=32
             ) -> CorefResult:
         """
         This is a massive method, but it made sense to me to not split it into
@@ -217,7 +217,7 @@ class CorefModel:  # pylint: disable=too-many-instance-attributes
         # words           [n_words, span_emb]
         # cluster_ids     [n_words]
         all_start = time.time()
-        bert_docs, bert_duration = self._bertify(docs)
+        bert_docs, bert_duration = self._bertify(docs, bert_batch_size)
         # print(f"We have {len(bert_docs)} bert_doc, with {len(docs)} docs")
         full_result = []
         for doc, bert_doc in zip(docs, bert_docs):
@@ -343,7 +343,7 @@ class CorefModel:  # pylint: disable=too-many-instance-attributes
 
     # ========================================================= Private methods
 
-    def _bertify(self, docs: List[Doc]):
+    def _bertify(self, docs: List[Doc], bert_batch_size=32):
         batched_subwords = None
         split_index = [0]
         start = time.time()
@@ -372,10 +372,10 @@ class CorefModel:  # pylint: disable=too-many-instance-attributes
         attention_mask = (subwords_batches != self.tokenizer.pad_token_id)
 
         full_output = torch.tensor([]).to(self.config.device)
-        for index in range(0, len(subwords_batches_tensor), 32):
-            subwords_batch = subwords_batches_tensor[index: index+32]
-            one_attention_mask = attention_mask[index: index+32]
-            mask_tensor = subword_mask_tensor[index: index+32]
+        for index in range(0, len(subwords_batches_tensor), bert_batch_size):
+            subwords_batch = subwords_batches_tensor[index: index+bert_batch_size]
+            one_attention_mask = attention_mask[index: index+bert_batch_size]
+            mask_tensor = subword_mask_tensor[index: index+bert_batch_size]
             out = self.bert(
                 subwords_batch,
                 attention_mask=torch.tensor(

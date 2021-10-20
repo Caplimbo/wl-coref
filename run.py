@@ -104,7 +104,7 @@ def process_article(article: str):
     return doc
 
 
-def run_on_articles(articles, device="cuda", batch_size=512):
+def run_on_articles(articles, device="cuda", batch_size=512, bert_batch_size=32):
     print("Loading Model...")
 
     model = CorefModel(CONFIG_FILE, EXPERIMENT_MODEL)
@@ -128,7 +128,7 @@ def run_on_articles(articles, device="cuda", batch_size=512):
     print("Done Processing! Begin Inference...")
     start = time.time()
     with torch.no_grad():
-        res = model.run(docs)
+        res = model.run(docs, bert_batch_size=bert_batch_size)
     '''
     for article, doc in zip(articles, docs):
         with torch.no_grad():
@@ -168,5 +168,6 @@ if __name__ == "__main__":
     device = input("DEVICE: ")
     batch_size = int(input("BATCH_SIZE: "))
     num_articles = int(input("Number of Articles: "))
-    duration = run_on_articles(articles[:num_articles], device=device, batch_size=batch_size)
+    bert_batch_size = int(input("BERT BATCH_SIZE: "))
+    duration = run_on_articles(articles[:num_articles], device=device, batch_size=batch_size, bert_batch_size=bert_batch_size)
     print(f"Running for {num_articles} articles took {duration} seconds.")
