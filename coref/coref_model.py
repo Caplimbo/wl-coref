@@ -218,10 +218,10 @@ class CorefModel:  # pylint: disable=too-many-instance-attributes
         # cluster_ids     [n_words]
         all_start = time.time()
         bert_docs, bert_duration = self._bertify(docs)
-        print(f"We have {len(bert_docs)} bert_doc, with {len(docs)} docs")
+        # print(f"We have {len(bert_docs)} bert_doc, with {len(docs)} docs")
         full_result = []
         for doc, bert_doc in zip(docs, bert_docs):
-            print(f"bert doc shape:", bert_doc.shape)
+            # print(f"bert doc shape:", bert_doc.shape)
             words, attn_duration = self.we(doc, bert_doc)
 
             # Obtain bilinear scores and leave only top-k antecedents for each word
@@ -351,10 +351,10 @@ class CorefModel:  # pylint: disable=too-many-instance-attributes
             subwords_batches = bert.get_subwords_batches(doc, self.config,
                                                         self.tokenizer)
             batched_subwords = subwords_batches if batched_subwords is None else np.concatenate([batched_subwords, subwords_batches], axis=0)
-            print("this batch have length: ", len(subwords_batches))
-            print("Batched subwords is now", batched_subwords.shape)
-            split_index.append(len(subwords_batches))
-            print("Split index: ", split_index)
+            # print("this batch have length: ", len(subwords_batches))
+            # print("Batched subwords is now", batched_subwords.shape)
+            split_index.append(len(batched_subwords))
+            # print("Split index: ", split_index)
 
         subwords_batches = batched_subwords
         special_tokens = np.array([self.tokenizer.cls_token_id,
