@@ -375,14 +375,15 @@ class CorefModel:  # pylint: disable=too-many-instance-attributes
         for index in range(0, len(subwords_batches_tensor), 2):
             subwords_batch = subwords_batches_tensor[index: index+2]
             one_attention_mask = attention_mask[index: index+2]
+            mask_tensor = subword_mask_tensor[index: index+2]
             out = self.bert(
                 subwords_batch,
                 attention_mask=torch.tensor(
                     one_attention_mask, device=self.config.device))['last_hidden_state']
 
             # [n_subwords, bert_emb]
-            print(out[subword_mask_tensor].shape)
-            full_output = torch.cat([full_output, out[subword_mask_tensor]])
+            print(out[mask_tensor].shape)
+            full_output = torch.cat([full_output, out[mask_tensor]])
             print(full_output.shape)
             # full_output = out[subword_mask_tensor]
         separate_output = [full_output[split_index[i]: split_index[i+1]] for i in range(len(docs))]
