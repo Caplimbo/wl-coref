@@ -113,7 +113,7 @@ class SpanPredictor(torch.nn.Module):
     def predict(self,
                 doc: Doc,
                 words: torch.Tensor,
-                clusters: List[List[int]]) -> List[List[Span]]:
+                clusters: List[List[int]]):
         """
         Predicts span clusters based on the word clusters.
 
@@ -135,7 +135,7 @@ class SpanPredictor(torch.nn.Module):
             device=self.device
         )
 
-        scores = self(doc, words, heads_ids)
+        scores, duration = self(doc, words, heads_ids)
         starts = scores[:, :, 0].argmax(dim=1).tolist()
         ends = (scores[:, :, 1].argmax(dim=1) + 1).tolist()
 
@@ -145,4 +145,4 @@ class SpanPredictor(torch.nn.Module):
         }
 
         return [[head2span[head] for head in cluster]
-                for cluster in clusters]
+                for cluster in clusters], duration
