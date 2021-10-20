@@ -258,10 +258,10 @@ class CorefModel:  # pylint: disable=too-many-instance-attributes
 
         res.span_clusters, final_model_duration = self.sp.predict(doc, words, res.word_clusters)
         all_end = time.time()
-        print(f"Full Inference Time: {all_end - all_start}")
-        print(f"Bert takes time: {bert_duration}")
-        print(f"All things that could be batched take time: {bert_duration + attn_duration + linear_dropout_duration + final_model_duration}")
-
+        print(f"Full Inference Time: {all_end - all_start:.6f}")
+        print(f"Bert takes time: {bert_duration:.6f}, Proportion:{bert_duration/(all_end-all_start)}")
+        # print(f"All things that could be batched take time: {bert_duration + attn_duration + linear_dropout_duration + final_model_duration}")
+        print("--------------------------")
         return res
 
     def save_weights(self):
