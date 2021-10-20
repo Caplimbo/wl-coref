@@ -218,7 +218,7 @@ class CorefModel:  # pylint: disable=too-many-instance-attributes
         # cluster_ids     [n_words]
         all_start = time.time()
         bert_docs, bert_duration = self._bertify(docs)
-
+        print(f"We have {len(bert_docs)} bert_doc, with {len(docs)} docs")
         full_result = []
         for doc, bert_doc in zip(docs, bert_docs):
             words, attn_duration = self.we(doc, bert_doc)
