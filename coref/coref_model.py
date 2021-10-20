@@ -221,6 +221,7 @@ class CorefModel:  # pylint: disable=too-many-instance-attributes
         print(f"We have {len(bert_docs)} bert_doc, with {len(docs)} docs")
         full_result = []
         for doc, bert_doc in zip(docs, bert_docs):
+            print(f"bert doc shape:", bert_doc.shape)
             words, attn_duration = self.we(doc, bert_doc)
 
             # Obtain bilinear scores and leave only top-k antecedents for each word
