@@ -128,7 +128,7 @@ def run_on_articles(articles, device="cuda", batch_size=512, bert_batch_size=32)
     print("Done Processing! Begin Inference...")
     start = time.time()
     with torch.no_grad():
-        res = model.run(docs, bert_batch_size=bert_batch_size)
+        full_res = model.run(docs, bert_batch_size=bert_batch_size)
     '''
     for article, doc in zip(articles, docs):
         with torch.no_grad():
