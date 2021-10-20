@@ -1,7 +1,7 @@
 """ Describes SpanPredictor which aims to predict spans by taking as input
 head word and context embeddings.
 """
-
+import time
 from typing import List, Optional, Tuple
 
 from coref.const import Doc, Span
@@ -35,7 +35,7 @@ class SpanPredictor(torch.nn.Module):
     def forward(self,  # type: ignore  # pylint: disable=arguments-differ  #35566 in pytorch
                 doc: Doc,
                 words: torch.Tensor,
-                heads_ids: torch.Tensor) -> torch.Tensor:
+                heads_ids: torch.Tensor):
         """
         Calculates span start/end scores of words for each span head in
         heads_ids
@@ -79,8 +79,10 @@ class SpanPredictor(torch.nn.Module):
         padded_pairs = torch.zeros(*padding_mask.shape, pair_matrix.shape[-1], device=words.device)
         padded_pairs[padding_mask] = pair_matrix
 
+        start = time.time()
         res = self.ffnn(padded_pairs) # [n_heads, n_candidates, last_layer_output]
         res = self.conv(res.permute(0, 2, 1)).permute(0, 2, 1) # [n_heads, n_candidates, 2]
+        duration = time.time() - start
 
         scores = torch.full((heads_ids.shape[0], words.shape[0], 2), float('-inf'), device=words.device)
         scores[rows, cols] = res[padding_mask]
@@ -91,7 +93,7 @@ class SpanPredictor(torch.nn.Module):
             valid_ends = torch.log((relative_positions <= 0).to(torch.float))
             valid_positions = torch.stack((valid_starts, valid_ends), dim=2)
             return scores + valid_positions
-        return scores
+        return scores, duration
 
     def get_training_data(self,
                           doc: Doc,

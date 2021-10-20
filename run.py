@@ -123,8 +123,9 @@ def run_on_articles(articles, device="cuda", batch_size=512):
         },
     )
     print("Model Loaded!")
-
+    print("Processing articles...")
     docs = [preprocess_doc(process_article(article), model.tokenizer) for article in articles]
+    print("Done Processing! Begin Inference...")
     start = time.time()
     for article, doc in zip(articles, docs):
         with torch.no_grad():

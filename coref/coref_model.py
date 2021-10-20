@@ -1,6 +1,7 @@
 """ see __init__.py """
 
 from datetime import datetime
+import time
 import os
 import pickle
 import random
@@ -215,12 +216,14 @@ class CorefModel:  # pylint: disable=too-many-instance-attributes
         # Encode words with bert
         # words           [n_words, span_emb]
         # cluster_ids     [n_words]
-        words = self.we(doc, self._bertify(doc))
+        all_start = time.time()
+        bert_doc, bert_duration = self._bertify(doc)
+        words, attn_duration = self.we(doc, bert_doc)
 
         # Obtain bilinear scores and leave only top-k antecedents for each word
         # top_rough_scores  [n_words, n_ants]
         # top_indices       [n_words, n_ants]
-        top_rough_scores, top_indices = self.rough_scorer(words)
+        top_rough_scores, top_indices, linear_dropout_duration = self.rough_scorer(words)
 
         # Get pairwise features [n_words, n_ants, n_pw_features]
         pw = self.pw(top_indices, doc)
@@ -253,7 +256,11 @@ class CorefModel:  # pylint: disable=too-many-instance-attributes
                                              top_indices)
         # res.span_scores, res.span_y = self.sp.get_training_data(doc, words)
 
-        res.span_clusters = self.sp.predict(doc, words, res.word_clusters)
+        res.span_clusters, final_model_duration = self.sp.predict(doc, words, res.word_clusters)
+        all_end = time.time()
+        print(f"Full Inference Time: {all_end - all_start}")
+        print(f"Bert takes time: {bert_duration}")
+        print(f"All things that could be batched take time: {bert_duration + attn_duration + linear_dropout_duration + final_model_duration}")
 
         return res
 
@@ -328,7 +335,7 @@ class CorefModel:  # pylint: disable=too-many-instance-attributes
 
     # ========================================================= Private methods
 
-    def _bertify(self, doc: Doc) -> torch.Tensor:
+    def _bertify(self, doc: Doc):
         subwords_batches = bert.get_subwords_batches(doc, self.config,
                                                      self.tokenizer)
 
@@ -345,13 +352,14 @@ class CorefModel:  # pylint: disable=too-many-instance-attributes
 
         # Obtain bert output for selected batches only
         attention_mask = (subwords_batches != self.tokenizer.pad_token_id)
+        start = time.time()
         out = self.bert(
             subwords_batches_tensor,
             attention_mask=torch.tensor(
                 attention_mask, device=self.config.device))['last_hidden_state']
 
         # [n_subwords, bert_emb]
-        return out[subword_mask_tensor]
+        return out[subword_mask_tensor], time.time() - start
 
     def _build_model(self):
         self.bert, self.tokenizer = bert.load_bert(self.config)

@@ -1,7 +1,7 @@
 """ Describes RoughScorer, a simple bilinear module to calculate rough
 anaphoricity scores.
 """
-
+import time
 from typing import Tuple
 
 import torch
@@ -24,7 +24,7 @@ class RoughScorer(torch.nn.Module):
 
     def forward(self,  # type: ignore  # pylint: disable=arguments-differ  #35566 in pytorch
                 mentions: torch.Tensor,
-                ) -> Tuple[torch.Tensor, torch.Tensor]:
+                ):
         """
         Returns rough anaphoricity scores for candidates, which consist of
         the bilinear output of the current model summed with mention scores.
@@ -35,11 +35,15 @@ class RoughScorer(torch.nn.Module):
         pair_mask = torch.log((pair_mask > 0).to(torch.float))
         pair_mask = pair_mask.to(mentions.device)
 
-        bilinear_scores = self.dropout(self.bilinear(mentions)).mm(mentions.T)
+        # TODO: check if we can batch this
+        start = time.time()
+        mat = self.dropout(self.bilinear(mentions))
+        duration = time.time() - start
+        bilinear_scores = mat.mm(mentions.T)
 
         rough_scores = pair_mask + bilinear_scores
 
-        return self._prune(rough_scores)
+        return self._prune(rough_scores), duration
 
     def _prune(self,
                rough_scores: torch.Tensor

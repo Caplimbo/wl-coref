@@ -1,6 +1,6 @@
 """ Describes WordEncoder. Extracts mention vectors from bert-encoded text.
 """
-
+import time
 from typing import Tuple
 
 import torch
@@ -51,11 +51,12 @@ class WordEncoder(torch.nn.Module):  # pylint: disable=too-many-instance-attribu
         ends = word_boundaries[:, 1]
 
         # [n_mentions, features]
+        start = time.time()
         words = self._attn_scores(x, starts, ends).mm(x)
-
+        duration = time.time() - start
         words = self.dropout(words)
 
-        return words
+        return words, duration
 
     def _attn_scores(self,
                      bert_out: torch.Tensor,
