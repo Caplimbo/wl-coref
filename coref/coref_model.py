@@ -223,7 +223,7 @@ class CorefModel:  # pylint: disable=too-many-instance-attributes
         full_result = []
         for doc, bert_doc in zip(docs, bert_docs):
             # print(f"bert doc shape:", bert_doc.shape)
-            words, attn_duration = self.we(doc, bert_doc)
+            words, attn_duration = self.we(doc, bert_doc.to(self.config.device))
 
             # Obtain bilinear scores and leave only top-k antecedents for each word
             # top_rough_scores  [n_words, n_ants]
@@ -373,19 +373,19 @@ class CorefModel:  # pylint: disable=too-many-instance-attributes
         # Obtain bert output for selected batches only
         attention_mask = (subwords_batches != self.tokenizer.pad_token_id)
 
-        full_output = torch.tensor([]).to(self.config.device)
+        full_output = torch.tensor([])
         for index in range(0, len(subwords_batches_tensor), bert_batch_size):
             subwords_batch = subwords_batches_tensor[index: index+bert_batch_size]
             one_attention_mask = attention_mask[index: index+bert_batch_size]
             mask_tensor = subword_mask_tensor[index: index+bert_batch_size]
-            out = self.bert(
-                subwords_batch,
-                attention_mask=torch.tensor(
-                    one_attention_mask, device=self.config.device))['last_hidden_state']
-
+            with torch.no_grad():
+                out = self.bert(
+                    subwords_batch,
+                    attention_mask=torch.tensor(
+                        one_attention_mask, device=self.config.device))['last_hidden_state']
             # [n_subwords, bert_emb]
             print(out[mask_tensor].shape)
-            full_output = torch.cat([full_output, out[mask_tensor]])
+            full_output = torch.cat([full_output, out[mask_tensor].detach().cpu()])
             del out
             torch.cuda.empty_cache()
             # full_output = out[subword_mask_tensor]
