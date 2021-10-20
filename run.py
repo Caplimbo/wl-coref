@@ -127,12 +127,12 @@ def run_on_articles(articles, device="cuda", batch_size=512, bert_batch_size=32)
     docs = [preprocess_doc(process_article(article), model.tokenizer) for article in articles]
     print("Done Processing! Begin Inference...")
     start = time.time()
-    with torch.no_grad():
-        full_res = model.run(docs, bert_batch_size=bert_batch_size)
-    '''
+    # with torch.no_grad():
+    #     full_res = model.run(docs, bert_batch_size=bert_batch_size)
+
     for article, doc in zip(articles, docs):
         with torch.no_grad():
-            res = model.run(doc)
+            res = model.run([doc])
             # all_span_clusters = res.span_clusters
             # processed = NLP(article)
             # for cluster in all_span_clusters:
@@ -142,7 +142,7 @@ def run_on_articles(articles, device="cuda", batch_size=512, bert_batch_size=32)
             #     print("----------------------------------")
             torch.cuda.empty_cache()
             del res
-    '''
+
     end = time.time()
     return end-start
 
