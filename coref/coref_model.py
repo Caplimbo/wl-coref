@@ -250,24 +250,24 @@ class CorefModel:  # pylint: disable=too-many-instance-attributes
                 )
                 a_scores_lst.append(a_scores_batch)
 
-            res = CorefResult()
+            # res = CorefResult()
 
             # coref_scores  [n_spans, n_ants]
-            res.coref_scores = torch.cat(a_scores_lst, dim=0)
+            coref_scores = torch.cat(a_scores_lst, dim=0)
 
             # res.coref_y = self._get_ground_truth(
             #     cluster_ids, top_indices, (top_rough_scores > float("-inf")))
-            res.word_clusters = self._clusterize(doc, res.coref_scores,
+            word_clusters = self._clusterize(doc, coref_scores,
                                                  top_indices)
             # res.span_scores, res.span_y = self.sp.get_training_data(doc, words)
 
-            res.span_clusters, final_model_duration = self.sp.predict(doc, words, res.word_clusters)
+            span_clusters, final_model_duration = self.sp.predict(doc, words, word_clusters)
             # all_end = time.time()
             # print(f"Full Inference Time: {all_end - all_start:.6f}")
             # print(f"Bert takes time: {bert_duration:.6f}, Proportion:{bert_duration/(all_end-all_start)*100:.2f}%")
             # print(f"All things that could be batched take time: {bert_duration + attn_duration + linear_dropout_duration + final_model_duration}")
             # print("--------------------------")
-            full_result.append(res.span_clusters)
+            full_result.append(span_clusters)
             torch.cuda.empty_cache()
         all_end = time.time()
         print(f"Full Inference Time: {all_end - all_start:.6f}")
@@ -365,19 +365,20 @@ class CorefModel:  # pylint: disable=too-many-instance-attributes
         subword_mask = ~(np.isin(subwords_batches, special_tokens))
 
         subwords_batches_tensor = torch.tensor(subwords_batches,
-                                               device=self.config.device,
+                                               # device=self.config.device,
                                                dtype=torch.long)
         subword_mask_tensor = torch.tensor(subword_mask,
-                                           device=self.config.device)
+                                           # device=self.config.device
+                                           )
 
         # Obtain bert output for selected batches only
         attention_mask = (subwords_batches != self.tokenizer.pad_token_id)
 
         full_output = torch.tensor([])
         for index in range(0, len(subwords_batches_tensor), bert_batch_size):
-            subwords_batch = subwords_batches_tensor[index: index+bert_batch_size]
+            subwords_batch = subwords_batches_tensor[index: index+bert_batch_size].to(self.config.device)
             one_attention_mask = attention_mask[index: index+bert_batch_size]
-            mask_tensor = subword_mask_tensor[index: index+bert_batch_size]
+            mask_tensor = subword_mask_tensor[index: index+bert_batch_size].to(self.config.device)
             with torch.no_grad():
                 out = self.bert(
                     subwords_batch,
@@ -388,6 +389,8 @@ class CorefModel:  # pylint: disable=too-many-instance-attributes
             full_output = torch.cat([full_output, out[mask_tensor].detach().cpu()])
             del out
             torch.cuda.empty_cache()
+            if len(full_output) > split_index[0]:
+                yield full_output
             # full_output = out[subword_mask_tensor]
         separate_output = [full_output[split_index[i]: split_index[i+1]] for i in range(len(docs))]
         return separate_output, time.time() - start
