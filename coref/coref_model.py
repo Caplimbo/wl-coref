@@ -351,8 +351,10 @@ class CorefModel:  # pylint: disable=too-many-instance-attributes
             subwords_batches = bert.get_subwords_batches(doc, self.config,
                                                         self.tokenizer)
             batched_subwords = subwords_batches if batched_subwords is None else np.concatenate([batched_subwords, subwords_batches], axis=0)
-            print("this batch have length: ", subwords_batches)
+            print("this batch have length: ", len(subwords_batches))
+            print("Batched subwords is now", batched_subwords.shape)
             split_index.append(len(subwords_batches))
+            print("Split index: ", split_index)
 
         subwords_batches = batched_subwords
         special_tokens = np.array([self.tokenizer.cls_token_id,
