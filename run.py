@@ -127,6 +127,9 @@ def run_on_articles(articles, device="cuda", batch_size=512):
     docs = [preprocess_doc(process_article(article), model.tokenizer) for article in articles]
     print("Done Processing! Begin Inference...")
     start = time.time()
+    with torch.no_grad():
+        res = model.run(docs)
+    '''
     for article, doc in zip(articles, docs):
         with torch.no_grad():
             res = model.run(doc)
@@ -139,6 +142,7 @@ def run_on_articles(articles, device="cuda", batch_size=512):
             #     print("----------------------------------")
             torch.cuda.empty_cache()
             del res
+    '''
     end = time.time()
     return end-start
 
