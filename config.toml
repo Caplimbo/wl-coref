@@ -24,7 +24,7 @@ bert_model = "bert-large-cased"
 # Controls max length of sequences passed through bert to obtain its
 # contextual embeddings
 # Must be less than or equal to 512
-bert_window_size = 200
+bert_window_size = 256
 
 
 # General model settings =============
