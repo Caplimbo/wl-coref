@@ -386,6 +386,8 @@ class CorefModel:  # pylint: disable=too-many-instance-attributes
             # [n_subwords, bert_emb]
             print(out[mask_tensor].shape)
             full_output = torch.cat([full_output, out[mask_tensor]])
+            del out
+            torch.cuda.empty_cache()
             # full_output = out[subword_mask_tensor]
         separate_output = [full_output[split_index[i]: split_index[i+1]] for i in range(len(docs))]
         return separate_output, time.time() - start
