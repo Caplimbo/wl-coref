@@ -373,9 +373,10 @@ class CorefModel:  # pylint: disable=too-many-instance-attributes
         # Obtain bert output for selected batches only
         attention_mask = (subwords_batches != self.tokenizer.pad_token_id)
 
-        # full_output = torch.tensor([])
+        full_output = torch.tensor([])
         bert_time = 0
         for index in range(0, len(subwords_batches), bert_batch_size):
+            assert index == 0
             subwords_batches_tensor = torch.tensor(subwords_batches[index: index+bert_batch_size], device=self.config.device, dtype=torch.long)
             attention_mask = torch.tensor((subwords_batches[index: index+bert_batch_size] != self.tokenizer.pad_token_id), device=self.config.device)
             subword_mask_tensor = torch.tensor(subword_mask[index: index+bert_batch_size], device=self.config.device)
@@ -386,12 +387,12 @@ class CorefModel:  # pylint: disable=too-many-instance-attributes
                     attention_mask=attention_mask)['last_hidden_state'].detach().cpu()
             # full_output = out.detach().cpu()[subword_mask_tensor[index: index+bert_batch_size].to(self.config.device)]
             bert_time += time.time() - start
-            # full_output = torch.cat([full_output, out[subword_mask_tensor]])
+            full_output = torch.cat([full_output, out[subword_mask_tensor]])
 
-            full_output = out[subword_mask_tensor]
+            # full_output = out[subword_mask_tensor]
             del out
-        # separate_output = [full_output[split_index[i]: split_index[i+1]] for i in range(len(docs))]
-        separate_output = [full_output]
+        separate_output = [full_output[split_index[i]: split_index[i+1]] for i in range(len(docs))]
+        # separate_output = [full_output]
         return separate_output, bert_time
 
     def _build_model(self):
