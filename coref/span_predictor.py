@@ -128,7 +128,7 @@ class SpanPredictor(torch.nn.Module):
             List[List[Span]]: span clusters
         """
         if not clusters:
-            return []
+            return [], 0
 
         heads_ids = torch.tensor(
             sorted(i for cluster in clusters for i in cluster),
