@@ -371,7 +371,7 @@ class CorefModel:  # pylint: disable=too-many-instance-attributes
                                            )
 
         # Obtain bert output for selected batches only
-        attention_mask = (subwords_batches != self.tokenizer.pad_token_id)
+        # attention_mask = (subwords_batches != self.tokenizer.pad_token_id)
 
         full_output = torch.tensor([])
         bert_time = 0
@@ -391,8 +391,6 @@ class CorefModel:  # pylint: disable=too-many-instance-attributes
             del out
 
         separate_output = [full_output[split_index[i]: split_index[i+1]][subword_mask_tensor[split_index[i]: split_index[i+1]]] for i in range(len(docs))]
-        for one in separate_output:
-            print(f"One of separate output: {one.shape}")
         # separate_output = [full_output]
         del full_output
         return separate_output, bert_time
