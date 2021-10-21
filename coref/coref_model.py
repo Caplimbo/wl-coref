@@ -223,7 +223,7 @@ class CorefModel:  # pylint: disable=too-many-instance-attributes
         full_result = []
         for doc, bert_doc in zip(docs, bert_docs):
             # print(f"bert doc shape:", bert_doc.shape)
-            words, attn_duration = self.we(doc, bert_doc)
+            words, attn_duration = self.we(doc, bert_doc.to(self.config.device))
 
             # Obtain bilinear scores and leave only top-k antecedents for each word
             # top_rough_scores  [n_words, n_ants]
@@ -373,7 +373,7 @@ class CorefModel:  # pylint: disable=too-many-instance-attributes
         # Obtain bert output for selected batches only
         # attention_mask = (subwords_batches != self.tokenizer.pad_token_id)
 
-        full_output = torch.tensor([], device=self.config.device)
+        full_output = torch.tensor([])
         bert_time = 0
         for index in range(0, len(subwords_batches), bert_batch_size):
             subwords_batches_tensor = torch.tensor(subwords_batches[index: index+bert_batch_size], device=self.config.device, dtype=torch.long)
@@ -383,13 +383,13 @@ class CorefModel:  # pylint: disable=too-many-instance-attributes
             with torch.no_grad():
                 out = self.bert(
                     subwords_batches_tensor,
-                    attention_mask=attention_mask)['last_hidden_state']
+                    attention_mask=attention_mask)['last_hidden_state'].detach().cpu()
             # full_output = out.detach().cpu()[subword_mask_tensor[index: index+bert_batch_size].to(self.config.device)]
             bert_time += time.time() - start
             full_output = torch.cat([full_output, out])
             del out
 
-        separate_output = [full_output[split_index[i]: split_index[i+1]][subword_mask_tensor[split_index[i]: split_index[i+1]].to(self.config.device)] for i in range(len(docs))]
+        separate_output = [full_output[split_index[i]: split_index[i+1]][subword_mask_tensor[split_index[i]: split_index[i+1]]] for i in range(len(docs))]
         # separate_output = [full_output]
         return separate_output, bert_time
 
