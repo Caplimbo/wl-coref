@@ -391,7 +391,10 @@ class CorefModel:  # pylint: disable=too-many-instance-attributes
 
             # full_output = out[subword_mask_tensor]
             del out
+        print(f"Shape of full output: {full_output.shape}")
         separate_output = [full_output[split_index[i]: split_index[i+1]] for i in range(len(docs))]
+        for one in separate_output:
+            print(f"One of separate output: {one}")
         assert separate_output == [full_output]
         # separate_output = [full_output]
         del full_output
