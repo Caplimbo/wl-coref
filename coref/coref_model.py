@@ -387,6 +387,7 @@ class CorefModel:  # pylint: disable=too-many-instance-attributes
                     attention_mask=attention_mask)['last_hidden_state'].detach().cpu()
             # full_output = out.detach().cpu()[subword_mask_tensor[index: index+bert_batch_size].to(self.config.device)]
             bert_time += time.time() - start
+            print(f"Before mask, output shape: {out.shape}")
             full_output = torch.cat([full_output, out[subword_mask_tensor]])
 
             # full_output = out[subword_mask_tensor]
