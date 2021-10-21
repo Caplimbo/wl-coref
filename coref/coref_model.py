@@ -391,8 +391,10 @@ class CorefModel:  # pylint: disable=too-many-instance-attributes
 
             # full_output = out[subword_mask_tensor]
             del out
-        # separate_output = [full_output[split_index[i]: split_index[i+1]] for i in range(len(docs))]
-        separate_output = [full_output]
+        separate_output = [full_output[split_index[i]: split_index[i+1]] for i in range(len(docs))]
+        assert separate_output == [full_output]
+        # separate_output = [full_output]
+        del full_output
         return separate_output, bert_time
 
     def _build_model(self):
