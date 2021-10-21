@@ -376,7 +376,6 @@ class CorefModel:  # pylint: disable=too-many-instance-attributes
         full_output = torch.tensor([])
         bert_time = 0
         for index in range(0, len(subwords_batches), bert_batch_size):
-            assert index == 0
             subwords_batches_tensor = torch.tensor(subwords_batches[index: index+bert_batch_size], device=self.config.device, dtype=torch.long)
             attention_mask = torch.tensor((subwords_batches[index: index+bert_batch_size] != self.tokenizer.pad_token_id), device=self.config.device)
             # subword_mask_tensor = torch.tensor(subword_mask[index: index+bert_batch_size], device=self.config.device)
