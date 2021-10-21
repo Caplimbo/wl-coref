@@ -375,21 +375,24 @@ class CorefModel:  # pylint: disable=too-many-instance-attributes
         attention_mask = (subwords_batches != self.tokenizer.pad_token_id)
 
         # full_output = torch.tensor([])
+        bert_time = 0
         for index in range(0, len(subwords_batches_tensor), bert_batch_size):
             subwords_batch = subwords_batches_tensor[index: index+bert_batch_size]# .to(self.config.device)
             one_attention_mask = attention_mask[index: index+bert_batch_size]
             mask_tensor = subword_mask_tensor[index: index+bert_batch_size]# .to(self.config.device)
+            start = time.time()
             with torch.no_grad():
                 out = self.bert(
                     subwords_batch,
                     attention_mask=torch.tensor(
                         one_attention_mask, device=self.config.device))['last_hidden_state']
             full_output = out[mask_tensor]
+            bert_time += time.time() - start
             # full_output = torch.cat([full_output, out[mask_tensor].detach().cpu()])
             del out
             # full_output = out[subword_mask_tensor]
         separate_output = [full_output[split_index[i]: split_index[i+1]] for i in range(len(docs))]
-        return separate_output, time.time() - start
+        return separate_output, bert_time
 
     def _build_model(self):
         self.bert, self.tokenizer = bert.load_bert(self.config)
