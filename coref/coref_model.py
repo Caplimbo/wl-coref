@@ -221,6 +221,7 @@ class CorefModel:  # pylint: disable=too-many-instance-attributes
         # torch.cuda.empty_cache()
         # print(f"We have {len(bert_docs)} bert_doc, with {len(docs)} docs")
         full_result = []
+        assert len(bert_docs) == 1
         for doc, bert_doc in zip(docs, bert_docs):
             # print(f"bert doc shape:", bert_doc.shape)
             words, attn_duration = self.we(doc, bert_doc)
@@ -267,7 +268,7 @@ class CorefModel:  # pylint: disable=too-many-instance-attributes
             # print(f"Bert takes time: {bert_duration:.6f}, Proportion:{bert_duration/(all_end-all_start)*100:.2f}%")
             # print(f"All things that could be batched take time: {bert_duration + attn_duration + linear_dropout_duration + final_model_duration}")
             # print("--------------------------")
-            full_result.append(span_clusters)
+            # full_result.append(span_clusters)
             torch.cuda.empty_cache()
         all_end = time.time()
         print(f"Full Inference Time: {all_end - all_start:.6f}")
