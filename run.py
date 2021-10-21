@@ -19,7 +19,7 @@ from coref import CorefModel
 from transformers import RobertaTokenizerFast
 import spacy
 from spacy.tokens import Doc
-
+import sys
 
 class RbaTokenizer:
     def __init__(self, vocab):
@@ -165,9 +165,11 @@ if __name__ == "__main__":
     seed(2020)
 
     articles = read_articles_from_json_file("../batch-processing/clients/articles.json")
-    device = input("DEVICE: ")
-    batch_size = int(input("BATCH_SIZE: "))
-    num_articles = int(input("Number of Articles: "))
-    bert_batch_size = int(input("BERT BATCH_SIZE: "))
+    # device = input("DEVICE: ")
+    # batch_size = int(input("BATCH_SIZE: "))
+    # num_articles = int(input("Number of Articles: "))
+    # bert_batch_size = int(input("BERT BATCH_SIZE: "))
+
+    device, batch_size, num_articles, bert_batch_size = sys.argv[1], int(sys.argv[2]), int(sys.argv[3]), int(sys.argv[4])
     duration = run_on_articles(articles[:num_articles], device=device, batch_size=batch_size, bert_batch_size=bert_batch_size)
     print(f"Running for {num_articles} articles took {duration} seconds.")
