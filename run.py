@@ -104,7 +104,7 @@ def process_article(article: str):
     return doc
 
 
-def run_on_articles(articles, device="cuda", batch_size=512, bert_batch_size=32):
+def run_on_articles(articles, device="cuda", batch_size=512, bert_batch_size=32, outer_batch_size=32):
     print("Loading Model...")
 
     model = CorefModel(CONFIG_FILE, EXPERIMENT_MODEL)
@@ -127,21 +127,24 @@ def run_on_articles(articles, device="cuda", batch_size=512, bert_batch_size=32)
     docs = [preprocess_doc(process_article(article), model.tokenizer) for article in articles]
     print("Done Processing! Begin Inference...")
     start = time.time()
-    # with torch.no_grad():
-    #     full_res = model.run(docs, bert_batch_size=bert_batch_size)
-
+    for i in range(0, len(docs), outer_batch_size):
+        batch_docs = docs[i: i+outer_batch_size]
+        with torch.no_grad():
+            full_res = model.run(docs, bert_batch_size=bert_batch_size)
+    '''
     for article, doc in zip(articles, docs):
         with torch.no_grad():
             res = model.run([doc], bert_batch_size=bert_batch_size)
-            all_span_clusters = res[0]
-            processed = NLP(article)
-            for cluster in all_span_clusters:
-                for span in cluster:
-                    print(f"Span: {span}")
-                    print(f"word: {processed[span[0]: span[1]]}")
-                print("----------------------------------")
-            torch.cuda.empty_cache()
+            # all_span_clusters = res[0]
+            # processed = NLP(article)
+            # for cluster in all_span_clusters:
+            #     for span in cluster:
+            #         print(f"Span: {span}")
+            #         print(f"word: {processed[span[0]: span[1]]}")
+            #     print("----------------------------------")
+            # torch.cuda.empty_cache()
             del res
+    '''
 
     end = time.time()
     return end-start
@@ -170,6 +173,6 @@ if __name__ == "__main__":
     # num_articles = int(input("Number of Articles: "))
     # bert_batch_size = int(input("BERT BATCH_SIZE: "))
 
-    device, batch_size, num_articles, bert_batch_size = sys.argv[1], int(sys.argv[2]), int(sys.argv[3]), int(sys.argv[4])
-    duration = run_on_articles(articles[:num_articles], device=device, batch_size=batch_size, bert_batch_size=bert_batch_size)
+    device, batch_size, num_articles, bert_batch_size, outer_batch_size = sys.argv[1], int(sys.argv[2]), int(sys.argv[3]), int(sys.argv[4]), int(sys.argv[5])
+    duration = run_on_articles(articles[:num_articles], device=device, batch_size=batch_size, bert_batch_size=bert_batch_size, outer_batch_size=outer_batch_size)
     print(f"Running for {num_articles} articles took {duration} seconds.")
