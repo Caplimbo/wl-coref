@@ -201,7 +201,7 @@ class CorefModel:  # pylint: disable=too-many-instance-attributes
                 print(f"Loaded {key}")
 
     def run(self,  # pylint: disable=too-many-locals
-            docs: List[Doc], bert_batch_size=32
+            doc: Doc,
             ) -> CorefResult:
         """
         This is a massive method, but it made sense to me to not split it into
@@ -217,62 +217,52 @@ class CorefModel:  # pylint: disable=too-many-instance-attributes
         # words           [n_words, span_emb]
         # cluster_ids     [n_words]
         all_start = time.time()
-        bert_docs, bert_duration = self._bertify(docs, bert_batch_size)
-        # torch.cuda.empty_cache()
-        # print(f"We have {len(bert_docs)} bert_doc, with {len(docs)} docs")
-        full_result = []
-        for doc, bert_doc in zip(docs, bert_docs):
-            # print(f"bert doc shape:", bert_doc.shape)
-            words, attn_duration = self.we(doc, bert_doc.to(self.config.device))
+        bert_doc, bert_duration = self._bertify(doc)
+        words, attn_duration = self.we(doc, bert_doc)
 
-            # Obtain bilinear scores and leave only top-k antecedents for each word
-            # top_rough_scores  [n_words, n_ants]
-            # top_indices       [n_words, n_ants]
-            (top_rough_scores, top_indices), linear_dropout_duration = self.rough_scorer(words)
+        # Obtain bilinear scores and leave only top-k antecedents for each word
+        # top_rough_scores  [n_words, n_ants]
+        # top_indices       [n_words, n_ants]
+        (top_rough_scores, top_indices), linear_dropout_duration = self.rough_scorer(words)
 
-            # Get pairwise features [n_words, n_ants, n_pw_features]
-            pw = self.pw(top_indices, doc)
+        # Get pairwise features [n_words, n_ants, n_pw_features]
+        pw = self.pw(top_indices, doc)
 
-            batch_size = self.config.a_scoring_batch_size
-            a_scores_lst: List[torch.Tensor] = []
+        batch_size = self.config.a_scoring_batch_size
+        a_scores_lst: List[torch.Tensor] = []
 
-            for i in range(0, len(words), batch_size):
-                pw_batch = pw[i:i + batch_size]
-                words_batch = words[i:i + batch_size]
-                top_indices_batch = top_indices[i:i + batch_size]
-                top_rough_scores_batch = top_rough_scores[i:i + batch_size]
+        for i in range(0, len(words), batch_size):
+            pw_batch = pw[i:i + batch_size]
+            words_batch = words[i:i + batch_size]
+            top_indices_batch = top_indices[i:i + batch_size]
+            top_rough_scores_batch = top_rough_scores[i:i + batch_size]
 
-                # a_scores_batch    [batch_size, n_ants]
-                a_scores_batch = self.a_scorer(
-                    all_mentions=words, mentions_batch=words_batch,
-                    pw_batch=pw_batch, top_indices_batch=top_indices_batch,
-                    top_rough_scores_batch=top_rough_scores_batch
-                )
-                a_scores_lst.append(a_scores_batch)
+            # a_scores_batch    [batch_size, n_ants]
+            a_scores_batch = self.a_scorer(
+                all_mentions=words, mentions_batch=words_batch,
+                pw_batch=pw_batch, top_indices_batch=top_indices_batch,
+                top_rough_scores_batch=top_rough_scores_batch
+            )
+            a_scores_lst.append(a_scores_batch)
 
-            # res = CorefResult()
+        res = CorefResult()
 
-            # coref_scores  [n_spans, n_ants]
-            coref_scores = torch.cat(a_scores_lst, dim=0)
+        # coref_scores  [n_spans, n_ants]
+        res.coref_scores = torch.cat(a_scores_lst, dim=0)
 
-            # res.coref_y = self._get_ground_truth(
-            #     cluster_ids, top_indices, (top_rough_scores > float("-inf")))
-            word_clusters = self._clusterize(doc, coref_scores,
-                                                 top_indices)
-            # res.span_scores, res.span_y = self.sp.get_training_data(doc, words)
+        # res.coref_y = self._get_ground_truth(
+        #     cluster_ids, top_indices, (top_rough_scores > float("-inf")))
+        res.word_clusters = self._clusterize(doc, res.coref_scores,
+                                             top_indices)
+        # res.span_scores, res.span_y = self.sp.get_training_data(doc, words)
 
-            span_clusters, final_model_duration = self.sp.predict(doc, words, word_clusters)
-            # all_end = time.time()
-            # print(f"Full Inference Time: {all_end - all_start:.6f}")
-            # print(f"Bert takes time: {bert_duration:.6f}, Proportion:{bert_duration/(all_end-all_start)*100:.2f}%")
-            # print(f"All things that could be batched take time: {bert_duration + attn_duration + linear_dropout_duration + final_model_duration}")
-            # print("--------------------------")
-            full_result.append(span_clusters)
-            torch.cuda.empty_cache()
+        res.span_clusters, final_model_duration = self.sp.predict(doc, words, res.word_clusters)
         all_end = time.time()
         print(f"Full Inference Time: {all_end - all_start:.6f}")
         print(f"Bert takes time: {bert_duration:.6f}, Proportion:{bert_duration/(all_end-all_start)*100:.2f}%")
-        return full_result
+        # print(f"All things that could be batched take time: {bert_duration + attn_duration + linear_dropout_duration + final_model_duration}")
+        print("--------------------------")
+        return res
 
     def save_weights(self):
         """ Saves trainable models as state dicts. """
@@ -345,53 +335,31 @@ class CorefModel:  # pylint: disable=too-many-instance-attributes
 
     # ========================================================= Private methods
 
-    def _bertify(self, docs: List[Doc], bert_batch_size=32):
-        batched_subwords = None
-        split_index = [0]
-        start = time.time()
-        for doc in docs:
-            subwords_batches = bert.get_subwords_batches(doc, self.config,
-                                                        self.tokenizer)
-            batched_subwords = subwords_batches if batched_subwords is None else np.concatenate([batched_subwords, subwords_batches], axis=0)
-            # print("this batch have length: ", len(subwords_batches))
-            # print("Batched subwords is now", batched_subwords.shape)
-            split_index.append(len(batched_subwords))
-            # print("Split index: ", split_index)
+    def _bertify(self, doc: Doc):
+        subwords_batches = bert.get_subwords_batches(doc, self.config,
+                                                     self.tokenizer)
 
-        subwords_batches = batched_subwords
         special_tokens = np.array([self.tokenizer.cls_token_id,
                                    self.tokenizer.sep_token_id,
                                    self.tokenizer.pad_token_id])
         subword_mask = ~(np.isin(subwords_batches, special_tokens))
 
         subwords_batches_tensor = torch.tensor(subwords_batches,
-                                               # device=self.config.device,
+                                               device=self.config.device,
                                                dtype=torch.long)
         subword_mask_tensor = torch.tensor(subword_mask,
-                                           # device=self.config.device
-                                           )
+                                           device=self.config.device)
 
         # Obtain bert output for selected batches only
         attention_mask = (subwords_batches != self.tokenizer.pad_token_id)
+        start = time.time()
+        out = self.bert(
+            subwords_batches_tensor,
+            attention_mask=torch.tensor(
+                attention_mask, device=self.config.device))['last_hidden_state']
 
-        full_output = torch.tensor([])
-        for index in range(0, len(subwords_batches_tensor), bert_batch_size):
-            subwords_batch = subwords_batches_tensor[index: index+bert_batch_size].to(self.config.device)
-            one_attention_mask = attention_mask[index: index+bert_batch_size]
-            mask_tensor = subword_mask_tensor[index: index+bert_batch_size].to(self.config.device)
-            with torch.no_grad():
-                out = self.bert(
-                    subwords_batch,
-                    attention_mask=torch.tensor(
-                        one_attention_mask, device=self.config.device))['last_hidden_state']
-            # [n_subwords, bert_emb]
-            print(out[mask_tensor].shape)
-            full_output = torch.cat([full_output, out[mask_tensor].detach().cpu()])
-            del out
-            torch.cuda.empty_cache()
-            # full_output = out[subword_mask_tensor]
-        separate_output = [full_output[split_index[i]: split_index[i+1]] for i in range(len(docs))]
-        return separate_output, time.time() - start
+        # [n_subwords, bert_emb]
+        return out[subword_mask_tensor], time.time() - start
 
     def _build_model(self):
         self.bert, self.tokenizer = bert.load_bert(self.config)
