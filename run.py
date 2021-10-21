@@ -132,7 +132,7 @@ def run_on_articles(articles, device="cuda", batch_size=512, bert_batch_size=32)
 
     for article, doc in zip(articles, docs):
         with torch.no_grad():
-            res = model.run(doc)
+            res = model.run([doc], bert_batch_size=bert_batch_size)
             # all_span_clusters = res.span_clusters
             # processed = NLP(article)
             # for cluster in all_span_clusters:
