@@ -354,7 +354,7 @@ class CorefModel:  # pylint: disable=too-many-instance-attributes
             batched_subwords = subwords_batches if batched_subwords is None else np.concatenate([batched_subwords, subwords_batches], axis=0)
             # print("this batch have length: ", len(subwords_batches))
             # print("Batched subwords is now", batched_subwords.shape)
-            split_index.append(len(batched_subwords))
+            split_index.append(len(batched_subwords.flatten()))
             # print("Split index: ", split_index)
 
         subwords_batches = batched_subwords
