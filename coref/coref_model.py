@@ -366,9 +366,9 @@ class CorefModel:  # pylint: disable=too-many-instance-attributes
         # subwords_batches_tensor = torch.tensor(subwords_batches,
         #                                        # device=self.config.device,
         #                                        dtype=torch.long)
-        # subword_mask_tensor = torch.tensor(subword_mask,
-        #                                    # device=self.config.device
-        #                                    )
+        subword_mask_tensor = torch.tensor(subword_mask,
+                                           # device=self.config.device
+                                           )
 
         # Obtain bert output for selected batches only
         attention_mask = (subwords_batches != self.tokenizer.pad_token_id)
@@ -379,7 +379,7 @@ class CorefModel:  # pylint: disable=too-many-instance-attributes
             assert index == 0
             subwords_batches_tensor = torch.tensor(subwords_batches[index: index+bert_batch_size], device=self.config.device, dtype=torch.long)
             attention_mask = torch.tensor((subwords_batches[index: index+bert_batch_size] != self.tokenizer.pad_token_id), device=self.config.device)
-            subword_mask_tensor = torch.tensor(subword_mask[index: index+bert_batch_size], device=self.config.device)
+            # subword_mask_tensor = torch.tensor(subword_mask[index: index+bert_batch_size], device=self.config.device)
             start = time.time()
             with torch.no_grad():
                 out = self.bert(
@@ -387,17 +387,12 @@ class CorefModel:  # pylint: disable=too-many-instance-attributes
                     attention_mask=attention_mask)['last_hidden_state'].detach().cpu()
             # full_output = out.detach().cpu()[subword_mask_tensor[index: index+bert_batch_size].to(self.config.device)]
             bert_time += time.time() - start
-            print(f"Before mask, output shape: {out.shape}")
-            full_output = torch.cat([full_output, out[subword_mask_tensor]])
-
-            # full_output = out[subword_mask_tensor]
+            full_output = torch.cat([full_output, out])
             del out
-        print(f"Shape of full output: {full_output.shape}")
-        print(f"split index: {split_index}")
-        separate_output = [full_output[split_index[i]: split_index[i+1]] for i in range(len(docs))]
+
+        separate_output = [full_output[split_index[i]: split_index[i+1]][subword_mask_tensor[split_index[i]: split_index[i+1]]] for i in range(len(docs))]
         for one in separate_output:
-            print(f"One of separate output: {one}")
-        assert separate_output == [full_output]
+            print(f"One of separate output: {one.shape}")
         # separate_output = [full_output]
         del full_output
         return separate_output, bert_time
