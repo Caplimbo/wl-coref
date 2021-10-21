@@ -224,7 +224,7 @@ class CorefModel:  # pylint: disable=too-many-instance-attributes
         assert len(bert_docs) == 1
         for doc, bert_doc in zip(docs, bert_docs):
             # print(f"bert doc shape:", bert_doc.shape)
-            words, attn_duration = self.we(doc, bert_doc)
+            words, attn_duration = self.we(doc, bert_doc.to(self.config.device))
 
             # Obtain bilinear scores and leave only top-k antecedents for each word
             # top_rough_scores  [n_words, n_ants]
