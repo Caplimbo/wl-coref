@@ -378,9 +378,9 @@ class CorefModel:  # pylint: disable=too-many-instance-attributes
         # full_output = torch.tensor([])
         bert_time = 0
         for index in range(0, len(subwords_batches_tensor), bert_batch_size):
-            subwords_batch = subwords_batches_tensor[index: index+bert_batch_size]# .to(self.config.device)
-            one_attention_mask = attention_mask[index: index+bert_batch_size]
-            mask_tensor = subword_mask_tensor[index: index+bert_batch_size]# .to(self.config.device)
+            subwords_batch = subwords_batches_tensor  # [index: index+bert_batch_size].to(self.config.device)
+            one_attention_mask = attention_mask  # [index: index+bert_batch_size]
+            mask_tensor = subword_mask_tensor  # [index: index+bert_batch_size].to(self.config.device)
             start = time.time()
             with torch.no_grad():
                 out = self.bert(
@@ -392,7 +392,8 @@ class CorefModel:  # pylint: disable=too-many-instance-attributes
             # full_output = torch.cat([full_output, out[mask_tensor].detach().cpu()])
             del out
             # full_output = out[subword_mask_tensor]
-        separate_output = [full_output[split_index[i]: split_index[i+1]] for i in range(len(docs))]
+        # separate_output = [full_output[split_index[i]: split_index[i+1]] for i in range(len(docs))]
+        separate_output = [full_output]
         return separate_output, bert_time
 
     def _build_model(self):
